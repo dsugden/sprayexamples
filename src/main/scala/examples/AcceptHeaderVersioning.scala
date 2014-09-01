@@ -17,9 +17,13 @@ import spray.routing._
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 
+
+object Json4sProtocol extends Json4sSupport {
+  implicit def json4sFormats: Formats = DefaultFormats
+}
+
+
 class FooActor extends Actor with ActorLogging {
-
-
   def receive: PartialFunction[Any, Unit] = {
     // V1
     case msg @ FooProtocol.HelloFoo(hi) =>
@@ -27,17 +31,12 @@ class FooActor extends Actor with ActorLogging {
     // V2
     case msg @ FooProtocolV2.HelloFoo(hi,there) =>
       sender ! FooProtocolV2.FooResponse(s"Hello back $hi $there" )
-
-  }
-
-  override def postRestart(reason: Throwable): Unit = {
-    log.info(s"Restarted due to ${reason.getMessage}")
   }
 }
 
 
 /**
- * Hello Version Media Types
+ * Foo Version Media Types
  */
 object VersionMediaTypes{
   lazy val `application/vnd.ww.v2.foo+json`  =
@@ -50,92 +49,79 @@ object VersionMediaTypes{
 
 
 /**
- * HelloActor protocol object.
+ * FooProtocol v1
  */
 object FooProtocol {
   sealed trait FooActorMessage
   case class HelloFoo(hi: String) extends FooActorMessage
   case class FooResponse(helloBackTo: String) extends FooActorMessage
 
+  import examples.Json4sProtocol._
+  import org.json4s.native.Serialization.{read, write => swrite}
+
   implicit val FooUnmarshaller: Unmarshaller[HelloFoo] =
     Unmarshaller[HelloFoo](`application/vnd.ww.v1.foo+json`) {
       case HttpEntity.NonEmpty(contentType, data) =>
-        val Array(_, hi) =data.asString.split(":,".toCharArray).map(_.trim)
-        HelloFoo(hi)
+        read[HelloFoo](data.asString)
     }
 
   implicit val FooMarshaller: Marshaller[HelloFoo] =
     Marshaller.of[HelloFoo](`application/vnd.ww.v1.foo+json`) { (value, contentType, ctx) =>
-      val HelloFoo(hi) = value
-      val string = "Hello: %s".format(hi)
-      ctx.marshalTo(HttpEntity(contentType, string))
+      ctx.marshalTo(HttpEntity(contentType, swrite(value)))
     }
   implicit val HelloBackUnmarshaller: Unmarshaller[FooResponse] =
     Unmarshaller[FooResponse](`application/vnd.ww.v1.foo+json`) {
       case HttpEntity.NonEmpty(contentType, data) =>
-        val Array(_, helloBackTo) =data.asString.split(":,".toCharArray).map(_.trim)
-        FooResponse(helloBackTo)
+        read[FooResponse](data.asString)
     }
 
   implicit val HelloBackMarshaller: Marshaller[FooResponse] =
     Marshaller.of[FooResponse](`application/vnd.ww.v1.foo+json`) { (value, contentType, ctx) =>
-      val FooResponse(helloBackTo) = value
-      val string = "HelloBack: %s".format(helloBackTo)
-      ctx.marshalTo(HttpEntity(contentType, string))
+      ctx.marshalTo(HttpEntity(contentType, swrite(value)))
     }
 }
 
 
 /**
- * HelloActor protocol object.
+ * FooProtocol v2
  */
 object FooProtocolV2 {
-
-
   sealed trait FooActorMessage
   case class HelloFoo(hi: String, there:String) extends FooActorMessage
   case class FooResponse(helloBackTo: String) extends FooActorMessage
 
 
-  //TODO  Figure out how to use json4s instead of handrolling serialization
+  import examples.Json4sProtocol._
+  import org.json4s.native.Serialization.{read, write => swrite}
+
 
   implicit val V2HelloUnmarshaller:Unmarshaller[FooProtocolV2.HelloFoo] =
     Unmarshaller[FooProtocolV2.HelloFoo](`application/vnd.ww.v2.foo+json`) {
       case HttpEntity.NonEmpty(contentType, data) =>
-        val Array(_, hi,there) =data.asString.split(":,".toCharArray).map(_.trim)
-        HelloFoo(hi,there)
+        read[HelloFoo](data.asString)
     }
 
   implicit val V2HelloMarshaller:Marshaller[FooProtocolV2.HelloFoo] =
     Marshaller.of[HelloFoo](`application/vnd.ww.v2.foo+json`) { (value, contentType, ctx) =>
-      val HelloFoo(hi,there) = value
-      val string = "Hello: %s,%s".format(hi,there)
-      ctx.marshalTo(HttpEntity(contentType, string))
+      ctx.marshalTo(HttpEntity(contentType, swrite(value)))
     }
   implicit val V2HelloBackUnmarshaller:Unmarshaller[FooProtocolV2.FooResponse] =
     Unmarshaller[FooResponse](`application/vnd.ww.v2.foo+json`) {
       case HttpEntity.NonEmpty(contentType, data) =>
-        val Array(_, helloBackTo) =data.asString.split(":,".toCharArray).map(_.trim)
-        FooResponse(helloBackTo)
+        read[FooResponse](data.asString)
     }
 
   implicit val V2HelloBackMarshaller:Marshaller[FooProtocolV2.FooResponse] =
     Marshaller.of[FooResponse](`application/vnd.ww.v2.foo+json`) { (value, contentType, ctx) =>
-      val FooResponse(helloBackTo) = value
-      val string = "HelloBack: %s".format(helloBackTo)
-      ctx.marshalTo(HttpEntity(contentType, string))
+      ctx.marshalTo(HttpEntity(contentType, swrite(value)))
     }
 }
 
 
-object Json4sProtocol extends Json4sSupport {
-  implicit def json4sFormats: Formats = DefaultFormats
-}
 
 
-// format: OFF
 /**
- * Hello restful interface.
+ * Foo restful interface.
  */
 trait FooRoute extends HttpService with AskSupport {
 
@@ -146,7 +132,7 @@ trait FooRoute extends HttpService with AskSupport {
   implicit val fooActorPath: ActorPath
   implicit val ec: ExecutionContext
 
-  /** This route supports hello v1 and hello v2 */
+  /** This route supports foo v1 and foo v2 */
   val fooRoute =
     post {
       path("foo") {
@@ -165,7 +151,7 @@ trait FooRoute extends HttpService with AskSupport {
            * per the Accept(MediaType)
            *
            * The actor that handles the request also matches on the different
-           * version ( HelloProtocol | HelloProtocolV2 )
+           * version ( FooProtocol | FooProtocolV2 )
            *
            */
 
