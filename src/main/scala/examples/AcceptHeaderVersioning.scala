@@ -137,23 +137,23 @@ object Json4sProtocol extends Json4sSupport {
 /**
  * Hello restful interface.
  */
-trait HelloRoute extends HttpService with AskSupport {
+trait FooRoute extends HttpService with AskSupport {
 
   import examples.FooProtocol._
   import examples.FooProtocolV2._
 
   implicit val timeout: Timeout
-  implicit val helloActorPath: ActorPath
+  implicit val fooActorPath: ActorPath
   implicit val ec: ExecutionContext
 
   /** This route supports hello v1 and hello v2 */
-  val helloRoute =
+  val fooRoute =
     post {
-      path("hello") {
+      path("foo") {
 
         implicit ctx =>
 
-          lazy val actorSelection = actorRefFactory.actorSelection(helloActorPath)
+          lazy val actorSelection = actorRefFactory.actorSelection(fooActorPath)
 
           def actComplete[T](implicit marshaller: ToResponseMarshaller[T]):Try[T] => Route =  {
             case Success(v) => complete(v)

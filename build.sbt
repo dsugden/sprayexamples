@@ -1,3 +1,5 @@
+name          := "spray-examples"
+
 version       := "0.1"
 
 scalaVersion  := "2.11.2"
@@ -15,14 +17,15 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka"          %% "akka-actor"         % Akka     % "compile",
-  "io.spray"                   %% "spray-routing"      % Spray    % "compile",
-  "io.spray"                   %% "spray-can"          % Spray    % "compile",
-  "io.spray"                   %% "spray-client"       % Spray    % "compile",
-  "org.json4s"                 %% "json4s-native"      % "3.2.10" % "compile",
-  "org.scalatest"              %% "scalatest"          % "2.2.0"  % "compile",
-  "com.typesafe.scala-logging" %% "scala-logging"      % "3.0.0"  % "compile",
-  "io.spray"                   %% "spray-testkit"      % Spray    % "test"
+  "com.typesafe.akka"          %% "akka-actor"         % Akka,
+  "io.spray"                   %% "spray-routing"      % Spray,
+  "io.spray"                   %% "spray-can"          % Spray,
+  "io.spray"                   %% "spray-client"       % Spray,
+  "org.json4s"                 %% "json4s-native"      % "3.2.10",
+  "org.scalatest"              %% "scalatest"          % "2.2.0",
+  "com.typesafe.scala-logging" %% "scala-logging"      % "3.0.0",
+  "io.spray"                   %% "spray-testkit"      % Spray,
+  "com.typesafe.akka"          %% "akka-testkit"       % Akka
 )
 
 seq(Revolver.settings: _*)
